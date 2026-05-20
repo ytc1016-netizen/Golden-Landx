@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金土地 Golden Land | 終極 LVA 土地開發反算系統</title>
+<style>
+:root{--brand-primary:#1A2A3A;--brand-secondary:#2C3E50;--brand-accent:#C5A059;--brand-light:#F4F7F6;--text-dark:#333;--success:#27AE60;--danger:#E74C3C;--card-bg:#FFFFFF;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'PingFang TC','Microsoft JhengHei',sans-serif;background:var(--brand-light);color:var(--text-dark);line-height:1.5;font-size:14px;overflow-x:hidden;}
+
+/* 頂部導航 */
+.navbar{background:linear-gradient(135deg,var(--brand-primary) 0%,var(--brand-secondary) 100%);padding:12px 20px;color:#fff;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-shadow:0 4px 10px rgba(0,0,0,0.1);}
+.brand{font-size:18px;font-weight:800;color:var(--brand-accent);display:flex;align-items:center;gap:15px;}
+.mode-switch{background:rgba(255,255,255,0.1);border-radius:20px;padding:4px;display:flex;gap:5px;border:1px solid rgba(197,160,89,0.5);}
+.mode-btn{cursor:pointer;padding:6px 12px;border-radius:16px;font-size:13px;font-weight:bold;color:#ddd;background:transparent;border:none;transition:0.3s;}
+.mode-btn.active{background:var(--brand-accent);color:var(--brand-primary);box-shadow:0 2px 5px rgba(0,0,0,0.2);}
+
+/* 版面結構 */
+.page-view { display: none; animation: fadeIn 0.3s ease-in-out; }
+.page-view.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+.dashboard-container{display:grid;grid-template-columns:420px 1fr;gap:20px;max-width:1600px;margin:20px auto;padding:0 15px;}
+@media (max-width: 900px) {
+    .dashboard-container { grid-template-columns: 1fr; margin: 10px auto; }
+    .navbar { flex-direction: column; gap: 10px; align-items: flex-start; }
+}
+
+/* 側邊表單與區塊 */
+.sidebar{background:var(--card-bg);padding:15px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.05);border-top:5px solid var(--brand-primary);}
+.section-title{font-size:0.85em;color:#fff;background:var(--brand-secondary);padding:6px 10px;border-radius:4px;margin:12px 0 8px 0;font-weight:bold;}
+.input-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.input-group.full{grid-column:span 2;}
+.input-group label{display:block;margin-bottom:4px;font-size:0.85em;font-weight:600;}
+.input-wrapper{position:relative;display:flex;align-items:center;}
+.input-wrapper input,.input-wrapper select{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:14px;font-weight:bold;font-family:inherit;}
+.input-wrapper input:focus{outline:none;border-color:var(--brand-accent);}
+.unit{position:absolute;right:10px;color:#888;font-size:0.8em;pointer-events:none;}
+.readonly-input{background:#f0f0f0; color:var(--brand-primary); cursor:not-allowed;}
+
+/* 結果呈現區 */
+.main-content{display:flex;flex-direction:column;gap:15px;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:12px;}
+.stat-card{background:var(--card-bg);padding:15px;border-radius:12px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,0.05);border-bottom:4px solid var(--brand-accent);}
+.stat-card h4{color:#666;font-size:0.9em;margin-bottom:5px;}
+.stat-card .value{font-size:1.6em;font-weight:800;color:var(--brand-primary);}
+
+.panel{background:var(--card-bg);border-radius:12px;padding:20px;border:1px solid rgba(197,160,89,0.3);box-shadow:0 4px 10px rgba(0,0,0,0.05);}
+.panel h3{color:var(--brand-accent);margin-bottom:12px;font-size:1.1em;border-bottom:1px solid #eee;padding-bottom:8px;display:flex;align-items:center;gap:8px;}
+.data-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.data-item{background:var(--brand-light);padding:12px;border-radius:8px;border-left:4px solid var(--brand-secondary);}
+.data-item .label{font-size:0.85em;color:#777;margin-bottom:4px;}
+.data-item .val{font-size:1.2em;font-weight:700;color:var(--brand-primary);}
+
+.lva-box{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;background:#fdfbf7;padding:20px;border-radius:10px;}
+@media (max-width: 768px) { .lva-box { grid-template-columns: 1fr; } }
+.rv-result{text-align:center;background:var(--brand-primary);color:#fff;padding:20px;border-radius:10px;display:flex;flex-direction:column;justify-content:center;}
+.rv-result .price{font-size:2.4em;font-weight:900;color:var(--brand-accent);margin:10px 0;}
+.cost-row{display:flex;justify-content:space-between;font-size:0.95em;padding:6px 0;border-bottom:1px dashed #ddd;}
+
+/* 彈出式授權視窗 */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(3px); z-index:9999; justify-content:center; align-items:center; }
+.modal-overlay.active { display:flex; }
+.modal-content { background:#fff; width:90%; max-width:400px; padding:25px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.3); text-align:center; animation: fadeIn 0.3s; }
+.modal-content h2 { color:var(--brand-primary); margin-bottom:10px; font-size:1.4em; }
+.modal-content p { color:#555; font-size:0.9em; margin-bottom:20px; line-height:1.5; }
+.line-info { background:var(--brand-light); padding:10px; border-radius:8px; margin-bottom:20px; font-size:0.85em; font-weight:bold; color:var(--brand-secondary); border:1px solid #ddd; }
+.auth-input { width:100%; padding:12px; border:2px solid #ccc; border-radius:8px; font-size:16px; text-align:center; font-weight:bold; margin-bottom:15px; letter-spacing:2px; }
+.auth-input:focus { outline:none; border-color:var(--brand-accent); }
+.modal-btn { width:100%; padding:12px; background:var(--brand-primary); color:var(--brand-accent); border:none; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; margin-bottom:10px; position: relative; }
+.modal-btn.cancel { background:#eee; color:#666; }
+.loader { display: none; border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid var(--brand-accent); width: 20px; height: 20px; animation: spin 1s linear infinite; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.loading .btn-text { visibility: hidden; }
+.loading .loader { display: block; }
+@keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+
+.btn-print{background:var(--brand-secondary);color:#fff;border:none;padding:15px;border-radius:8px;cursor:pointer;font-weight:bold;width:100%;margin:20px 0;}
+@media print{ .navbar, .sidebar, .btn-print, .mode-switch {display:none!important;} .dashboard-container{display:block;} .panel{page-break-inside:avoid;margin-bottom:20px;} }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="brand">
+        金土地 Golden Land
+        <div class="mode-switch">
+            <button id="btn_free" class="mode-btn active" onclick="switchPage('free')">初步免費版</button>
+            <button id="btn_pro" class="mode-btn" onclick="switchPage('pro')">進階付費版</button>
+        </div>
+    </div>
+</nav>
+
+<div id="auth_modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>🔒 系統權限解鎖</h2>
+        <p>進階 LVA 反算引擎需專屬授權碼方可啟用。</p>
+        <div class="line-info">
+            尚未取得授權？請加入官方 LINE 獲取：<br>
+            <span style="color:#00B900; font-size:1.1em;">@258igzxn</span><br>
+            (單次試算 88 元 / 月訂閱無限次 468 元)
+        </div>
+        <input type="password" id="auth_code" class="auth-input" placeholder="請輸入授權碼">
+        <button id="btn_verify" class="modal-btn" onclick="verifyAuth()">
+            <span class="btn-text">確認解鎖</span>
+            <div class="loader"></div>
+        </button>
+        <button class="modal-btn cancel" onclick="closeModal()">取消返回</button>
+    </div>
+</div>
+
+<div id="page_free" class="page-view active">
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="section-title">一、基地資料與量體法規 (免費版)</div>
+            <div class="input-grid">
+                <div class="input-group full">
+                    <label>土地使用分區</label>
+                    <div class="input-wrapper">
+                        <select id="f_zoning" onchange="syncZoning('f'); calc();">
+                            <option value="住宅">住宅用地 (純住宅無店面)</option>
+                            <option value="商業">商業用地 (含店面設計)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group"><label>基地面積</label><div class="input-wrapper"><input type="number" id="f_area" value="1200" oninput="syncInputs('f'); calc();"><span class="unit">坪</span></div></div>
+                <div class="input-group"><label>法定建蔽率</label><div class="input-wrapper"><input type="number" id="f_cov" value="60" oninput="syncInputs('f'); calc();"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>實際設計建蔽率</label><div class="input-wrapper"><input type="number" id="f_dcov" value="40" oninput="syncInputs('f'); calc();"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>法定容積率</label><div class="input-wrapper"><input type="number" id="f_far" value="180" oninput="syncInputs('f'); calc();"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>基地開挖率</label><div class="input-wrapper"><input type="number" id="f_exc" value="80" oninput="syncInputs('f'); calc();"><span class="unit">%</span></div></div>
+            </div>
+            
+            <div class="section-title">二、產品售價設定 (免費版)</div>
+            <div class="input-grid">
+                <div class="input-group"><label>住宅售價</label><div class="input-wrapper"><input type="number" id="f_hp" value="35" oninput="syncInputs('f'); calc();"><span class="unit">萬</span></div></div>
+                <div class="input-group"><label>營造單價</label><div class="input-wrapper"><input type="number" id="f_cc" value="18" oninput="syncInputs('f'); calc();"><span class="unit">萬</span></div></div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="stat-grid">
+                <div class="stat-card"><h4>初步總銷概估</h4><div class="value" id="out_f_s">0</div><span style="font-size:10px">萬元</span></div>
+                <div class="stat-card" style="border-bottom-color:#ccc;"><h4>初步營造概估</h4><div class="value" id="out_f_c">0</div><span style="font-size:10px">萬元</span></div>
+            </div>
+            <div class="panel">
+                <h3>🏗️ 基礎量體坪效</h3>
+                <div class="data-grid">
+                    <div class="data-item"><div class="label">可建強度(坪效)</div><div class="val" id="res_f_eff">0 倍</div></div>
+                    <div class="data-item"><div class="label">總工程營造建坪</div><div class="val" id="res_f_tarea">0 坪</div></div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div id="page_pro" class="page-view">
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="section-title">一、基地資料與量體法規 (進階版)</div>
+            <div class="input-grid">
+                <div class="input-group full">
+                    <label>土地使用分區</label>
+                    <div class="input-wrapper">
+                        <select id="p_zoning" onchange="syncZoning('p'); calc();">
+                            <option value="住宅">住宅用地 (純住宅無店面)</option>
+                            <option value="商業">商業用地 (含店面設計)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group"><label>基地面積</label><div class="input-wrapper"><input type="number" id="p_area" value="1200" oninput="syncInputs('p'); calc();"><span class="unit">坪</span></div></div>
+                <div class="input-group"><label>法定建蔽率</label><div class="input-wrapper"><input type="number" id="p_cov" value="60" oninput="syncInputs('p'); calc();"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>實際設計建蔽率</label><div class="input-wrapper"><input type="number" id="p_dcov" value="40" oninput="syncInputs('p'); calc();" style="border-color:var(--brand-accent);"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>法定容積率</label><div class="input-wrapper"><input type="number" id="p_far" value="180" oninput="syncInputs('p'); calc();"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>基地開挖率</label><div class="input-wrapper"><input type="number" id="p_exc" value="80" oninput="syncInputs('p'); calc();"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>容積獎勵</label><div class="input-wrapper"><input type="number" id="p_bon" value="0" oninput="calc()"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>容積移轉</label><div class="input-wrapper"><input type="number" id="p_tra" value="0" oninput="calc()"><span class="unit">%</span></div></div>
+                <div class="input-group full"><label>虛坪/免計係數</label><div class="input-wrapper"><input type="number" id="p_mul" value="1.65" step="0.01" oninput="calc()"><span class="unit">倍</span></div></div>
+            </div>
+
+            <div class="section-title">二、建築型態與樓層設定</div>
+            <div class="input-grid">
+                <div class="input-group full"><label>建築型態</label>
+                    <div class="input-wrapper">
+                        <select id="p_btype" onchange="calc()">
+                            <option value="透天車墅">透天車墅</option>
+                            <option value="電梯華廈" selected>電梯華廈</option>
+                            <option value="電梯大樓">電梯大樓</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group full"><label>推估地上層數 (系統依設計建蔽率自動計算)</label><div class="input-wrapper"><input type="number" id="p_fup" class="readonly-input" value="0" readonly><span class="unit">層</span></div></div>
+                <div class="input-group full"><label>地下開挖層數</label><div class="input-wrapper"><input type="number" id="p_fdn" value="1" oninput="calc()"><span class="unit">層</span></div></div>
+            </div>
+
+            <div class="section-title">三、產品售價與配比詳細設定</div>
+            <div class="input-grid">
+                <div class="input-group" id="ig_sp" style="display:none;"><label>店面售價</label><div class="input-wrapper"><input type="number" id="p_sp" value="60" oninput="calc()"><span class="unit">萬</span></div></div>
+                <div class="input-group" id="ig_sf" style="display:none;"><label>店面規劃層數</label><div class="input-wrapper"><input type="number" id="p_sf" value="1" oninput="calc()"><span class="unit">層</span></div></div>
+                <div class="input-group full"><label>住宅售價</label><div class="input-wrapper"><input type="number" id="p_hp" value="35" oninput="syncInputs('p'); calc();"><span class="unit">萬</span></div></div>
+                <div class="input-group"><label>平面車位</label><div class="input-wrapper"><input type="number" id="p_pp" value="180" oninput="calc()"><span class="unit">萬</span></div></div>
+                <div class="input-group"><label>機械車位</label><div class="input-wrapper"><input type="number" id="p_mp" value="110" oninput="calc()"><span class="unit">萬</span></div></div>
+                <div class="input-group full"><label>平面配比(剩餘機械)</label><div class="input-wrapper"><input type="number" id="p_pr" value="100" oninput="calc()"><span class="unit">%</span></div></div>
+                <div class="input-group full"><label>營造單價(含地下室)</label><div class="input-wrapper"><input type="number" id="p_cc" value="18" oninput="syncInputs('p'); calc();"><span class="unit">萬</span></div></div>
+            </div>
+
+            <div class="section-title">四、財務管銷與目標毛利</div>
+            <div class="input-grid">
+                <div class="input-group"><label>目標毛利率</label><div class="input-wrapper"><input type="number" id="p_tm" value="20" oninput="calc()"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>代銷/廣告率</label><div class="input-wrapper"><input type="number" id="p_mr" value="6" oninput="calc()"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>融資年利率</label><div class="input-wrapper"><input type="number" id="p_ir" value="3.5" oninput="calc()"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>計息期間</label><div class="input-wrapper"><input type="number" id="p_iy" value="3" oninput="calc()"><span class="unit">年</span></div></div>
+                <div class="input-group"><label>仲介佣金率</label><div class="input-wrapper"><input type="number" id="p_cr" value="2" oninput="calc()"><span class="unit">%</span></div></div>
+                <div class="input-group"><label>土地契稅率</label><div class="input-wrapper"><input type="number" id="p_tr" value="1" oninput="calc()"><span class="unit">%</span></div></div>
+                <div class="input-group full"><label>地主目前開價</label><div class="input-wrapper"><input type="number" id="p_lp" value="27" oninput="calc()"><span class="unit">萬/坪</span></div></div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="stat-grid">
+                <div class="stat-card"><h4>精算總銷售額</h4><div class="value" id="out_p_s">0</div><span style="font-size:10px">萬元</span></div>
+                <div class="stat-card"><h4>總開發成本</h4><div class="value" id="out_p_c">0</div><span style="font-size:10px">萬元</span></div>
+                <div class="stat-card" id="card_p_m"><h4>開價毛利率</h4><div class="value" id="out_p_m">0%</div></div>
+            </div>
+
+            <div class="panel">
+                <h3>🎯 LVA 投資效益反算引擎</h3>
+                <div class="lva-box">
+                    <div class="rv-result">
+                        <div style="font-size:0.9em;opacity:0.8;">滿足目標毛利之系統建議買價</div>
+                        <div class="price" id="out_rv">--</div>
+                        <div id="out_diff" style="margin-top:5px;font-weight:bold;font-size:1em;">--</div>
+                    </div>
+                    <div>
+                        <div class="cost-row"><span>總銷售額 (100%)</span><span id="d_s">--</span></div>
+                        <div class="cost-row"><span>- 營造總成本</span><span id="d_c">--</span></div>
+                        <div class="cost-row"><span>- 管銷雜支費用</span><span id="d_m">--</span></div>
+                        <div class="cost-row"><span>- 土建融利息預估</span><span id="d_i">--</span></div>
+                        <div class="cost-row"><span>- 目標開發毛利</span><span style="color:var(--success)" id="d_p">--</span></div>
+                        <div class="cost-row" style="border-top:2px solid var(--brand-accent);margin-top:5px;font-weight:bold;">
+                            <span>土地取得總預算</span><span style="color:var(--brand-accent)" id="d_l">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>🏗️ 詳細建築法規量體</h3>
+                <div class="data-grid">
+                    <div class="data-item"><div class="label">可建強度(坪效)</div><div class="val" id="res_p_eff">0 倍</div></div>
+                    <div class="data-item"><div class="label">平面 / 機械車位</div><div class="val" id="res_p_cars">0 / 0 個</div></div>
+                    <div class="data-item"><div class="label">總工程營造建坪</div><div class="val" id="res_p_tarea">0 坪</div></div>
+                    <div class="data-item" id="wrap_p_bwarn" style="display:none; grid-column: 1 / -1; background: #ffebee; border-left: 4px solid var(--danger);">
+                        <div class="label" style="color: var(--danger); font-weight: bold;">⚠️ 地下室獨立開挖損益警示</div>
+                        <div class="val" id="res_p_bwarn" style="color: var(--danger); font-size: 0.9em; white-space: pre-wrap; margin-top: 4px; line-height: 1.4;">--</div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-print" onclick="window.print()">🖨️ 產出 PDF 專業分析報告</button>
+        </main>
+    </div>
+</div>
+
+<script>
+let isProUnlocked = false;
+
+function switchPage(target) {
+    if (target === 'pro' && !isProUnlocked) {
+        document.getElementById('auth_modal').classList.add('active');
+        return;
+    }
+    document.getElementById('btn_free').classList.toggle('active', target === 'free');
+    document.getElementById('btn_pro').classList.toggle('active', target === 'pro');
+    document.getElementById('page_free').classList.toggle('active', target === 'free');
+    document.getElementById('page_pro').classList.toggle('active', target === 'pro');
+    calc();
+}
+
+function verifyAuth() {
+    const code = document.getElementById('auth_code').value.trim();
+    const btn = document.getElementById('btn_verify');
+    if (!code) { alert("請輸入有效的授權碼！"); return; }
+
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    // 已自動替換為您專屬的網頁應用程式網址
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxuTz4H1RhXbgLVrQvezABRMkr4AXaRAMHpUkFcG1Abt6gqgR25pKKnlHLzSKV5fM27jQ/exec'; 
+
+    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+    window[callbackName] = function(result) {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        delete window[callbackName];
+        document.body.removeChild(script);
+        if (result.status === 'success') { unlockPro(); } else { alert(result.message || "授權碼無效或已過期！"); }
+    };
+
+    const script = document.createElement('script');
+    script.src = `${API_URL}?code=${encodeURIComponent(code)}&callback=${callbackName}`;
+    script.onerror = function() { btn.classList.remove('loading'); btn.disabled = false; alert("連線驗證失敗。"); };
+    document.body.appendChild(script);
+}
+
+function unlockPro() { isProUnlocked = true; document.getElementById('auth_modal').classList.remove('active'); document.getElementById('auth_code').value = ''; switchPage('pro'); }
+function closeModal() { document.getElementById('auth_modal').classList.remove('active'); }
+function syncZoning(source) {
+    if(source === 'f') document.getElementById('p_zoning').value = document.getElementById('f_zoning').value;
+    if(source === 'p') document.getElementById('f_zoning').value = document.getElementById('p_zoning').value;
+    toggleStorefront();
+}
+function toggleStorefront() {
+    const isComm = document.getElementById('p_zoning').value === '商業';
+    document.getElementById('ig_sp').style.display = isComm ? 'block' : 'none';
+    document.getElementById('ig_sf').style.display = isComm ? 'block' : 'none';
+}
+function syncInputs(source) {
+    const map = ['area', 'cov', 'dcov', 'far', 'exc', 'hp', 'cc'];
+    map.forEach(id => {
+        if(source === 'f') { if(document.getElementById('p_' + id)) document.getElementById('p_' + id).value = document.getElementById('f_' + id).value; }
+        if(source === 'p') { if(document.getElementById('f_' + id)) document.getElementById('f_' + id).value = document.getElementById('p_' + id).value; }
+    });
+}
+function getV(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calc() {
+    try {
+        const area = getV('p_area'), cov = getV('p_cov'), dcov = getV('p_dcov') || cov;
+        const far = getV('p_far'), exc = getV('p_exc'), hp = getV('p_hp'), cc = getV('p_cc');
+        if (area === 0) return;
+
+        // 免費版
+        const f_sArea = area * (far / 100) * 1.6; 
+        document.getElementById('out_f_s').innerText = Math.round(f_sArea * hp).toLocaleString();
+        document.getElementById('out_f_c').innerText = Math.round(f_sArea * cc).toLocaleString();
+        document.getElementById('res_f_eff').innerText = (f_sArea/area).toFixed(2) + " 倍";
+        document.getElementById('res_f_tarea').innerText = Math.round(f_sArea).toLocaleString() + " 坪";
+
+        // 進階版
+        const isComm = document.getElementById('p_zoning').value === '商業';
+        const bon = getV('p_bon'), tra = getV('p_tra'), mul = getV('p_mul'), bType = document.getElementById('p_btype').value, fDn = getV('p_fdn');
+        const sf = isComm ? getV('p_sf') : 0, sp = isComm ? getV('p_sp') : 0, pp = getV('p_pp'), mp = getV('p_mp'), pr = getV('p_pr');
+        const tm = getV('p_tm'), mr = getV('p_mr'), ir = getV('p_ir'), iy = getV('p_iy'), cr = getV('p_cr'), tr = getV('p_tr'), lp = getV('p_lp');
+
+        const base = area * (far * (1 + bon/100 + tra/100) / 100);
+        const sArea = base * mul;
+        const stArea = Math.min(sArea, area * (dcov/100) * sf);
+        const hArea = sArea - stArea;
+
+        let fup = (area > 0 && dcov > 0) ? Math.ceil(sArea / (area * (dcov/100))) : 0;
+        document.getElementById('p_fup').value = fup;
+
+        let bArea = 0, cParks = 0, pCars = 0, mCars = 0;
+        if (fDn > 0 && bType !== "透天車墅") {
+            bArea = fDn * (area * (exc/100));
+            cParks = Math.floor(bArea / 10);
+            pCars = Math.round(cParks * (pr/100));
+            mCars = cParks - pCars;
+        }
+        const tArea = sArea + bArea;
+        const tSales = (stArea * sp) + (hArea * hp) + (pCars * pp) + (mCars * mp);
+        const tCost = tArea * cc;
+        const tMgt = tSales * (mr/100);
+        const int = (tCost + (area * lp)) * 0.6 * (ir/100) * iy * 0.7;
+        const tLand = (area * lp) * (1 + (cr+tr)/100);
+        const currCost = tCost + tMgt + int + tLand;
+        const margin = tSales > 0 ? ((tSales - currCost) / tSales) * 100 : 0;
+
+        const pVal = tSales * (tm/100);
+        const lBud = tSales - tCost - tMgt - int - pVal;
+        const rvPrice = lBud / area / (1 + (cr+tr)/100);
+        const diff = rvPrice - lp;
+
+        // 地下室警示
+        const bCost = bArea * cc, pSales = (pCars * pp) + (mCars * mp), bProfit = pSales - bCost;
+        const wWrap = document.getElementById('wrap_p_bwarn'), wVal = document.getElementById('res_p_bwarn');
+        if (fDn > 0 && bType !== "透天車墅" && bProfit < 0) {
+            wWrap.style.display = 'block';
+            wVal.innerText = `地下室總造價 (${Math.round(bCost).toLocaleString()} 萬) 已超過 車位總銷 (${Math.round(pSales).toLocaleString()} 萬)\n👉 地下室本身即產生 ${Math.round(Math.abs(bProfit)).toLocaleString()} 萬 財務虧損，嚴重反噬樓上獲利！請評估減少開挖層數或提高車位售價。`;
+        } else { wWrap.style.display = 'none'; }
+
+        document.getElementById('out_p_s').innerText = Math.round(tSales).toLocaleString();
+        document.getElementById('out_p_c').innerText = Math.round(currCost).toLocaleString();
+        document.getElementById('out_p_m').innerText = margin.toFixed(1) + "%";
+        document.getElementById('card_p_m').style.borderBottomColor = margin < 0 ? 'var(--danger)' : 'transparent';
+        document.getElementById('res_p_eff').innerText = (sArea/area).toFixed(2) + " 倍";
+        document.getElementById('res_p_cars').innerText = bType === "透天車墅" ? "自設車庫" : pCars + " / " + mCars + " 個";
+        document.getElementById('res_p_tarea').innerText = Math.round(tArea).toLocaleString() + " 坪";
+        document.getElementById('out_rv').innerText = rvPrice > 0 ? Math.round(rvPrice) + " 萬/坪" : "無法獲利";
+        
+        const dEl = document.getElementById('out_diff');
+        dEl.innerText = (diff >= 0 ? "買價優勢: +" : "溢價警示: ") + diff.toFixed(1) + " 萬";
+        dEl.style.color = diff >= 0 ? "var(--success)" : "var(--danger)";
+
+        document.getElementById('d_s').innerText = Math.round(tSales).toLocaleString() + " 萬";
+        document.getElementById('d_c').innerText = Math.round(tCost).toLocaleString() + " 萬";
+        document.getElementById('d_m').innerText = Math.round(tMgt).toLocaleString() + " 萬";
+        document.getElementById('d_i').innerText = Math.round(int).toLocaleString() + " 萬";
+        document.getElementById('d_p').innerText = Math.round(pVal).toLocaleString() + " 萬";
+        document.getElementById('d_l').innerText = Math.round(lBud).toLocaleString() + " 萬";
+    } catch(e) { console.error(e); }
+}
+window.onload = function() { toggleStorefront(); calc(); };
+</script>
+</body>
+</html>
